@@ -2,7 +2,7 @@
 - string allocation with initialization - stralloc and strdup
 - memory deallocation - strfree
 - getting length - strlen
-- copying (must not exceed the max length)
+- copying (must not exceed the max length) - my_strncpy
 - printing - strprint
 - concatenation - strconcat
 - getting a substring - my_substr
