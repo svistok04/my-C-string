@@ -37,7 +37,7 @@ void free_str_array(str_t** str_array)
 
     for (size_t i = 0; str_array[i] != NULL; i++) {
         free(str_array[i]->data);
-    //    free(str_array[i]);  // SIGABRT for strsplit function.
+        free(str_array[i]);
     }
 
     free(str_array);
@@ -118,17 +118,14 @@ int16_t my_strcmp(str_t* str1, str_t* str2)
 
     size_t cmp_length = (str1->realLength > str2->realLength) ? str2->realLength : str1->realLength;
 
-    const uint8_t* data1 = str1->data;
-    const uint8_t* data2 = str2->data;
-
     for(size_t i = 0; i < cmp_length; i++)
     {
-        if (*(data1 + i) > *(data2 + i))
+        if (*str1->data + i > *str2->data + i)
         {
             result = 1;
             break;
         }
-        if (*(data1 + i) < *(data2 + i))
+        if (*str1->data + i < *str2->data + i)
         {
             result = -1;
             break;
@@ -145,17 +142,16 @@ uint8_t* my_strstr(str_t* str, const char* word)
     size_t counter = 0;
     size_t wordSize = my_strlen(word);
     uint8_t* result = NULL;
-    uint8_t* data = str->data;
     const char* wordStart = word;
     for (size_t i = 0; i < str->realLength; i++)
     {
-        if (*(data++) == *word)
+        if (*str->data + i == *word)
         {
             counter++;
             word++;
             if (counter == wordSize)
             {
-                return (uint8_t*)(data - counter);
+                return (uint8_t*)(str->data + i - counter);
             }
         } else
         {
@@ -165,7 +161,6 @@ uint8_t* my_strstr(str_t* str, const char* word)
     }
     return result;
 }
-
 // touppers some char
 uint8_t my_toupper(uint8_t ch)
 {
@@ -204,44 +199,39 @@ str_t* strtolower(str_t* str)
 
 // splits a str_t into an array of substrings based on a specified delimiter.
 // for ',' chosen, the input "hello,world" will be split into an array containing "hello" and "world".
+// TODO: try to read and think of how to add more functionality / implement the whole thing in a better way
 str_t** strsplit(str_t* str, const uint8_t delimiter)
 {
     uint8_t* data = str->data;
+    size_t* wordsLength = malloc(sizeof(size_t));
     size_t count = 0;
-    size_t lengthCnt = 0;
     for(size_t i = 0; i < str->realLength; i++) {
-        if (data[i] == delimiter) {
+        if (data[i] == delimiter || data[i] == '\0') {
             count++;
         }
+        wordsLength[i] += 1;
     }
-    str_t** result = malloc((count + 2) * sizeof(str_t*));
-    for (size_t i = 0; i < count + 2; i++)
+    str_t** result = malloc((count + 1) * sizeof(str_t*));
+    for (size_t i = 0; i < count; i++)
     {
-        result[i] = stralloc(10); // that's not smart lol
+        result[i] = stralloc(wordsLength[i]);
     }
 
-    for(size_t i = 0; i < count + 1; i++)
+    result[count] = NULL;
+
+    for(size_t i = 0; i < count; i++)
     {
         size_t tmpLength = 0;
-        str_t* tmp = result[i];
-        uint8_t* tmpData = tmp->data;
+        uint8_t* tmpData = result[i]->data;
         while (*data != delimiter && *data != '\0')
         {
-            *(tmpData++) = *(data++);
-            lengthCnt++;
+            *(tmpData + tmpLength) = *(data++);
             tmpLength++;
         }
-        lengthCnt++;
         data++;
-        tmp->realLength = tmpLength + 1;
-        tmp->contentLength = tmpLength;
-        if (lengthCnt >= str->realLength)
-        {
-            break;
-        }
+        result[i]->realLength = tmpLength + 1;
+        result[i]->contentLength = tmpLength;
     }
-
-    result[count + 2] = NULL;
 
     return result;
 }
@@ -311,13 +301,13 @@ int main(int argc, char** argv) {
     }
 
     // testing this dumb bug
-    str_t** result = malloc(4 * sizeof(str_t*));
+  /*  str_t** test = malloc(4 * sizeof(str_t*));
     for (size_t i = 0; i < 3; i++)
     {
-        result[i] = stralloc(10);
+        test[i] = stralloc(10);
     }
-    result[3] = NULL;
-    free_str_array(result);
+    test[3] = NULL;
+    free_str_array(test);*/
 
 
     strfree(hello1);
@@ -330,8 +320,7 @@ int main(int argc, char** argv) {
     strfree(UPPERCASE);
     strfree(lowercase);
     strfree(text);
-    free_str_array(wordsSeparated); // memory leak: can't dealloc memory to which str_t* points when using
-                                            // strsplit function
+    free_str_array(wordsSeparated);
 
 
     return 0;
